@@ -1,42 +1,56 @@
-const express = require('express');
-const mysql = require('mysql2');
-require('dotenv').config();
-const path = require('path');
+var express = require("express");
+var mysql = require("mysql");
+const env = require("dotenv").config({ path: "./.env" });
+var app = express();
 
-const app = express();
-const port = 8080;
-
-// 정적 파일 경로
-app.use(express.static(path.join(__dirname, 'public')));
-
-// DB 연결
-const db = mysql.createConnection({
-    host: process.env.host,
-    user: process.env.user,
-    password: process.env.password,
-    database: process.env.database,
-    port: process.env.port,
+var connection = mysql.createConnection({
+  host: process.env.host,
+  user: process.env.user,
+  port: process.env.port,
+  password: process.env.password,
+  database: process.env.database,
 });
 
-db.connect((err) => {
-    if (err) {
-        console.error('❌ MySQL 연결 실패:', err);
-        return;
+connection.connect(function (err) {
+  if (!err) {
+    console.log("Database is connected~!!\n\n");
+  } else {
+    console.log("Error connecting Database~!!");
+  }
+});
+
+app.get("/", function (req, res) {
+  connection.query("select * from st_info", function (err, rows, fields) {
+    // connection.end();
+    if (!err) {
+      // res.send(rows);
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      var template = `
+                <table border="1" style="margin:auto;text-align:center;">
+                <tr>
+                    <th>ST_ID</th>
+                    <th>NAME</th>
+                    <th>DEPT</th>
+                </tr>
+                `;
+      rows.forEach((item) => {
+        template += `
+                    <tr>
+                        <th>${item.ST_ID}</th>
+                        <th>${item.NAME}</th>
+                        <th>${item.DEPT}</th>
+                    </tr>
+                    `;
+      });
+      template += `</table>`;
+      res.end(template);
+      console.log("The solution is : ", rows);
+    } else {
+      console.log("Error while performing Query~!!");
     }
-    console.log('✅ MySQL 연결 성공!');
+  });
 });
 
-// API: 데이터 응답
-app.get('/st_info', (req, res) => {
-    db.query('SELECT * FROM st_info', (err, rows) => {
-        if (err) {
-            console.error('쿼리 오류:', err);
-            return res.status(500).send('DB 오류');
-        }
-        res.json(rows);
-    });
-});
-
-app.listen(port, () => {
-    console.log(`✅ 서버 실행 중: http://localhost:${port}`);
+app.listen(8080, function () {
+  console.log("8080 Port : Server Started~!!");
 });
